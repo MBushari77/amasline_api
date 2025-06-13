@@ -1,0 +1,46 @@
+# Ignore the React build folder
+/build/
+
+# Node modules (never track dependencies)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-generated files
+.DS_Store
+Thumbs.db
+
+# Environment variable files
+.env
+.env.*
+
+# Optional cache files
+.eslintcache
+.npm
+.cache/
+
+# Ignore IDE/editor-specific folders
+.vscode/
+.idea/
+
+# System-specific files
+*.swp
+*.swo
+
+# Mac metadata
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.tmp
+*.bak
+
+# Optional uploads folder (if you want to keep it out of git)
+# /uploads/
+
+# Ignore local configuration (uncomment if conf contains secrets)
+# /conf/
