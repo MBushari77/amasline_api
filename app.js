@@ -45,6 +45,8 @@ const adminRouter = require("./routes/adminRouter");
 app.use("/admin", adminRouter);
 const bannerRouter = require("./routes/bannerRouter");
 app.use("/banners", bannerRouter);
+const userRouter = require("./routes/userRouter");
+app.use("/users", userRouter);
 
 // 🎯 Catch-all route to serve React frontend
 app.get("*", (req, res) => {
