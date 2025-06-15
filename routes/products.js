@@ -288,4 +288,65 @@ router.put("/:id/images", upload.array("images", 10), (req, res) => {
   });
 });
 
+// Update usageImages only
+router.put("/:id/usage-images", upload.array("usageImages", 10), (req, res) => {
+  const { id } = req.params;
+  const { orderedUsageImages = "[]" } = req.body;
+
+  let updatedUsageImages = [];
+  try {
+    updatedUsageImages = JSON.parse(orderedUsageImages);
+  } catch {
+    return res.status(400).json({ error: "Invalid orderedUsageImages format" });
+  }
+
+  const newlyUploaded = req.files.map((file) => file.filename);
+  newlyUploaded.forEach((file) => {
+    if (!updatedUsageImages.includes(file)) {
+      updatedUsageImages.push(file);
+    }
+  });
+
+  // Get current usageImages from DB
+  db.query(
+    "SELECT usageImages FROM products WHERE id = ?",
+    [id],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.length === 0)
+        return res.status(404).json({ message: "Product not found" });
+
+      const currentUsageImages = JSON.parse(result[0].usageImages || "[]");
+
+      // Find removed usageImages and delete from filesystem
+      const removedUsageImages = currentUsageImages.filter(
+        (img) => !updatedUsageImages.includes(img)
+      );
+      removedUsageImages.forEach((filename) => {
+        const filePath = path.join(__dirname, "../uploads", filename);
+        fs.unlink(filePath, (fsErr) => {
+          if (fsErr && fsErr.code !== "ENOENT") {
+            console.error("Failed to delete file:", fsErr);
+          }
+        });
+      });
+
+      // Update DB with new usageImages
+      db.query(
+        "UPDATE products SET usageImages = ? WHERE id = ?",
+        [JSON.stringify(updatedUsageImages), id],
+        (updateErr) => {
+          if (updateErr)
+            return res.status(500).json({ error: updateErr.message });
+          res.json({
+            success: true,
+            message: "Usage images updated",
+            usageImages: updatedUsageImages,
+          });
+        }
+      );
+    }
+  );
+});
+
 module.exports = router;
