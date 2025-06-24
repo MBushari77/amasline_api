@@ -22,22 +22,31 @@ router.post(
     { name: "banner", maxCount: 1 },
   ]),
   (req, res) => {
-    const { name, shortInfo, description } = req.body;
+    const { name, shortInfo, description, tags } = req.body;
 
     const icon = req.files?.icon?.[0]?.filename || null;
     const banner = req.files?.banner?.[0]?.filename || null;
+
+    // Parse tags JSON string into an array (or default to empty array)
+    let tagsArray = [];
+    try {
+      tagsArray = JSON.parse(tags);
+      if (!Array.isArray(tagsArray)) tagsArray = [];
+    } catch (e) {
+      tagsArray = [];
+    }
 
     if (!name || !shortInfo || !description || !icon || !banner) {
       return res.status(400).json({ error: "All fields are required." });
     }
 
     const sql = `
-      INSERT INTO categories (name, shortInfo, description, icon, banner)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO categories (name, shortInfo, description, icon, banner, tags)
+      VALUES (?, ?, ?, ?, ?, ?)
     `;
     db.query(
       sql,
-      [name, shortInfo, description, icon, banner],
+      [name, shortInfo, description, icon, banner, JSON.stringify(tagsArray)],
       (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({
@@ -98,5 +107,55 @@ router.delete("/:id", (req, res) => {
     }
   );
 });
+
+// Update category
+router.post(
+  "/update/:id",
+  upload.fields([
+    { name: "icon", maxCount: 1 },
+    { name: "banner", maxCount: 1 },
+  ]),
+  (req, res) => {
+    const { id } = req.params;
+    const { name, shortInfo, description, tags } = req.body;
+
+    let tagsArray = [];
+    try {
+      tagsArray = JSON.parse(tags);
+      if (!Array.isArray(tagsArray)) tagsArray = [];
+    } catch (e) {
+      tagsArray = [];
+    }
+
+    const icon = req.files?.icon?.[0]?.filename;
+    const banner = req.files?.banner?.[0]?.filename;
+
+    const updateFields = [
+      "name = ?",
+      "shortInfo = ?",
+      "description = ?",
+      "tags = ?",
+    ];
+    const values = [name, shortInfo, description, JSON.stringify(tagsArray)];
+
+    if (icon) {
+      updateFields.push("icon = ?");
+      values.push(icon);
+    }
+
+    if (banner) {
+      updateFields.push("banner = ?");
+      values.push(banner);
+    }
+
+    values.push(id);
+
+    const sql = `UPDATE categories SET ${updateFields.join(", ")} WHERE id = ?`;
+    db.query(sql, values, (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true, message: "Category updated" });
+    });
+  }
+);
 
 module.exports = router;

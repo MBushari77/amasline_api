@@ -32,10 +32,12 @@ router.post("/add-product", multiUpload, (req, res) => {
     colors,
     category_id,
     vendor,
+    tags,
   } = req.body;
 
   let sizeArray = [];
   let colorArray = [];
+  let tagArray = [];
 
   try {
     sizeArray = JSON.parse(sizes || "[]");
@@ -48,16 +50,22 @@ router.post("/add-product", multiUpload, (req, res) => {
   } catch {
     colorArray = [];
   }
-  const images = (req.files["images"] || []).map((file) => file.filename);
 
+  try {
+    tagArray = JSON.parse(tags || "[]");
+  } catch {
+    tagArray = [];
+  }
+
+  const images = (req.files["images"] || []).map((file) => file.filename);
   const usageImages = (req.files["usageImages"] || []).map(
     (file) => file.filename
   );
 
   const sql = `
     INSERT INTO products 
-    (name, model, price, offerPrice, stock, description, warranty, images, usageImages, sizes, colors, category_id, vendor) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (name, model, price, offerPrice, stock, description, warranty, images, usageImages, sizes, colors, category_id, vendor, tags) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -65,17 +73,18 @@ router.post("/add-product", multiUpload, (req, res) => {
     [
       name || null,
       model || null,
-      Number(price), // already integer
-      Number(offerPrice) || null, // optional integer
-      Number(stock), // already integer
+      Number(price),
+      Number(offerPrice) || null,
+      Number(stock),
       description || null,
       warranty || null,
       JSON.stringify(images),
       JSON.stringify(usageImages),
       JSON.stringify(sizeArray),
       JSON.stringify(colorArray),
-      category_id, // assumed integer
-      Number(vendor), // already integer
+      category_id,
+      Number(vendor),
+      JSON.stringify(tagArray),
     ],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -122,12 +131,14 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
     warranty,
     sizes,
     colors,
+    tags, // <-- Add tags here
     category_id,
     vendor,
   } = req.body;
 
   let sizeArray = [];
   let colorArray = [];
+  let tagArray = []; // <-- Add tags array
 
   try {
     sizeArray = JSON.parse(sizes || "[]");
@@ -141,12 +152,17 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
     colorArray = [];
   }
 
+  try {
+    tagArray = JSON.parse(tags || "[]"); // <-- Parse tags here
+  } catch {
+    tagArray = [];
+  }
+
   const newImages = (req.files["images"] || []).map((file) => file.filename);
   const newUsageImages = (req.files["usageImages"] || []).map(
     (file) => file.filename
   );
 
-  // Get current images to preserve if not updating
   const selectSql = "SELECT images, usageImages FROM products WHERE id = ?";
   db.query(selectSql, [id], (selectErr, result) => {
     if (selectErr) return res.status(500).json({ error: selectErr.message });
@@ -165,7 +181,7 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
       UPDATE products SET 
         name = ?, model = ?, price = ?, offerPrice = ?, stock = ?, 
         description = ?, warranty = ?, images = ?, usageImages = ?, 
-        sizes = ?, colors = ?, category_id = ?, vendor = ?
+        sizes = ?, colors = ?, tags = ?, category_id = ?, vendor = ?
       WHERE id = ?
     `;
 
@@ -183,6 +199,7 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
         usageImages,
         JSON.stringify(sizeArray),
         JSON.stringify(colorArray),
+        JSON.stringify(tagArray), // <-- Add tags here
         category_id,
         Number(vendor),
         id,
