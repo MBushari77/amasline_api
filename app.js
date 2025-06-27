@@ -39,14 +39,27 @@ app.use(express.static(path.join(__dirname, "build")));
 // API routes
 const productRouter = require("./routes/products");
 app.use("/products", productRouter);
+
 const categoryRouter = require("./routes/categoryRoutes");
 app.use("/categories", categoryRouter);
+
 const adminRouter = require("./routes/adminRouter");
 app.use("/admin", adminRouter);
+
 const bannerRouter = require("./routes/bannerRouter");
 app.use("/banners", bannerRouter);
+
 const userRouter = require("./routes/userRouter");
 app.use("/users", userRouter);
+
+const brandsRouter = require("./routes/brandsRouter");
+app.use("/brands", brandsRouter);
+
+const partnersRouter = require("./routes/partnersRouter");
+app.use("/partners", partnersRouter);
+
+const offersRouter = require("./routes/offersRouter");
+app.use("/offers", offersRouter);
 
 // 🎯 Catch-all route to serve React frontend
 app.get("*", (req, res) => {

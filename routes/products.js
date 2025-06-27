@@ -366,4 +366,25 @@ router.put("/:id/usage-images", upload.array("usageImages", 10), (req, res) => {
   );
 });
 
+router.post("/list", (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "You must provide an array of product IDs in 'ids'",
+    });
+  }
+
+  // Build placeholders dynamically
+  const placeholders = ids.map(() => "?").join(",");
+
+  const sql = `SELECT * FROM products WHERE id IN (${placeholders})`;
+
+  db.query(sql, ids, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, products: results });
+  });
+});
+
 module.exports = router;

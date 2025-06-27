@@ -210,4 +210,126 @@ router.post("/send-email", async (req, res) => {
   }
 });
 
+router.post("/:id/wishlist/add", (req, res) => {
+  const userId = req.params.id;
+  const { productId } = req.body;
+
+  if (!productId) {
+    return res.status(400).json({ error: "Product ID is required" });
+  }
+
+  // Step 1: Get current wishlist
+  db.query(
+    "SELECT wishList FROM users WHERE id = ?",
+    [userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.length === 0)
+        return res.status(404).json({ error: "User not found" });
+
+      let wishlist = [];
+      try {
+        wishlist = JSON.parse(result[0].wishList || "[]");
+      } catch {
+        wishlist = [];
+      }
+
+      if (wishlist.includes(productId)) {
+        return res.json({ success: true, message: "Already in wishlist" });
+      }
+
+      wishlist.push(productId);
+
+      db.query(
+        "UPDATE users SET wishList = ? WHERE id = ?",
+        [JSON.stringify(wishlist), userId],
+        (updateErr) => {
+          if (updateErr)
+            return res.status(500).json({ error: updateErr.message });
+          res.json({
+            success: true,
+            message: "Added to wishlist",
+            wishList: wishlist,
+          });
+        }
+      );
+    }
+  );
+});
+
+router.post("/:id/wishlist/remove", (req, res) => {
+  const userId = req.params.id;
+  const { productId } = req.body;
+
+  if (!productId) {
+    return res.status(400).json({ error: "Product ID is required" });
+  }
+
+  db.query(
+    "SELECT wishList FROM users WHERE id = ?",
+    [userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.length === 0)
+        return res.status(404).json({ error: "User not found" });
+
+      let wishlist = [];
+      try {
+        wishlist = JSON.parse(result[0].wishList || "[]");
+      } catch {
+        wishlist = [];
+      }
+
+      wishlist = wishlist.filter((id) => id !== productId);
+
+      db.query(
+        "UPDATE users SET wishList = ? WHERE id = ?",
+        [JSON.stringify(wishlist), userId],
+        (updateErr) => {
+          if (updateErr)
+            return res.status(500).json({ error: updateErr.message });
+          res.json({
+            success: true,
+            message: "Removed from wishlist",
+            wishList: wishlist,
+          });
+        }
+      );
+    }
+  );
+});
+
+router.get("/:id/wishlist/products", (req, res) => {
+  const userId = req.params.id;
+
+  db.query(
+    "SELECT wishList FROM users WHERE id = ?",
+    [userId],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.length === 0)
+        return res.status(404).json({ error: "User not found" });
+
+      let wishlist = [];
+      try {
+        wishlist = JSON.parse(result[0].wishList || "[]");
+      } catch {
+        wishlist = [];
+      }
+
+      if (wishlist.length === 0) return res.json({ products: [] });
+
+      const placeholders = wishlist.map(() => "?").join(",");
+      db.query(
+        `SELECT * FROM products WHERE id IN (${placeholders})`,
+        wishlist,
+        (err, products) => {
+          if (err) return res.status(500).json({ error: err.message });
+          res.json({ products });
+        }
+      );
+    }
+  );
+});
+
 module.exports = router;
