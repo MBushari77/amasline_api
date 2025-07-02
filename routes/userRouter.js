@@ -69,6 +69,18 @@ router.post("/register", async (req, res) => {
   }
 });
 
+router.get("/all", (req, res) => {
+  db.query("SELECT * FROM users", (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    // Remove passwords from results
+    const users = results.map((user) => {
+      const { password, ...rest } = user;
+      return rest;
+    });
+    res.json({ users });
+  });
+});
+
 // LOGIN
 router.post("/login", (req, res) => {
   const { emailOrUsername, password } = req.body;

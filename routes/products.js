@@ -33,6 +33,8 @@ router.post("/add-product", multiUpload, (req, res) => {
     category_id,
     vendor,
     tags,
+    offer, // <-- add this
+    brand, // <-- add this
   } = req.body;
 
   let sizeArray = [];
@@ -64,8 +66,8 @@ router.post("/add-product", multiUpload, (req, res) => {
 
   const sql = `
     INSERT INTO products 
-    (name, model, price, offerPrice, stock, description, warranty, images, usageImages, sizes, colors, category_id, vendor, tags) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (name, model, price, offerPrice, stock, description, warranty, images, usageImages, sizes, colors, category_id, vendor, tags, offer, brand)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -85,6 +87,8 @@ router.post("/add-product", multiUpload, (req, res) => {
       category_id,
       Number(vendor),
       JSON.stringify(tagArray),
+      Number(offer) || null,
+      Number(brand) || null, // <-- add this
     ],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -134,6 +138,8 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
     tags, // <-- Add tags here
     category_id,
     vendor,
+    offer, // <-- add this
+    brand, // <-- add this
   } = req.body;
 
   let sizeArray = [];
@@ -178,12 +184,12 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
       : current.usageImages;
 
     const updateSql = `
-      UPDATE products SET 
-        name = ?, model = ?, price = ?, offerPrice = ?, stock = ?, 
-        description = ?, warranty = ?, images = ?, usageImages = ?, 
-        sizes = ?, colors = ?, tags = ?, category_id = ?, vendor = ?
-      WHERE id = ?
-    `;
+    UPDATE products SET 
+      name = ?, model = ?, price = ?, offerPrice = ?, stock = ?, 
+      description = ?, warranty = ?, images = ?, usageImages = ?, 
+      sizes = ?, colors = ?, tags = ?, category_id = ?, vendor = ?, offer = ?, brand = ?
+    WHERE id = ?
+  `;
 
     db.query(
       updateSql,
@@ -199,9 +205,11 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
         usageImages,
         JSON.stringify(sizeArray),
         JSON.stringify(colorArray),
-        JSON.stringify(tagArray), // <-- Add tags here
+        JSON.stringify(tagArray),
         category_id,
         Number(vendor),
+        Number(offer) || null,
+        Number(brand) || null, // <-- add this
         id,
       ],
       (err) => {

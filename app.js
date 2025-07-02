@@ -61,7 +61,15 @@ app.use("/partners", partnersRouter);
 const offersRouter = require("./routes/offersRouter");
 app.use("/offers", offersRouter);
 
-// 🎯 Catch-all route to serve React frontend
+const reviewsRouter = require("./routes/reviewsRouter");
+app.use("/reviews", reviewsRouter);
+
+const fileRouter = require("./routes/fileRouter");
+app.use("/file", fileRouter);
+
+const userRoutes = require("./routes/registerSeller");
+app.use("/seller", userRoutes);
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });
