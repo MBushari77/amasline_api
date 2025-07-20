@@ -70,6 +70,12 @@ app.use("/file", fileRouter);
 const userRoutes = require("./routes/registerSeller");
 app.use("/seller", userRoutes);
 
+const videosRoutes = require("./routes/videosRouter");
+app.use("/videos", videosRoutes);
+
+const mainAdsRouter = require("./routes/mainAdsRouter");
+app.use("/main_ads", mainAdsRouter);
+
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "build", "index.html"));
 });

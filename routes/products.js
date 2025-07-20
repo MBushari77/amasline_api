@@ -123,6 +123,13 @@ router.get("/all", (req, res) => {
   });
 });
 
+router.get("/allrandom", (req, res) => {
+  const sql = "SELECT * FROM products ORDER BY RAND() LIMIT 50";
+  db.query(sql, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, products: results });
+  });
+});
 router.put("/update-product/:id", multiUpload, (req, res) => {
   const { id } = req.params;
   const {
@@ -217,6 +224,57 @@ router.put("/update-product/:id", multiUpload, (req, res) => {
         res.json({ success: true, message: "Product updated successfully" });
       }
     );
+  });
+});
+router.delete("/batch-delete", (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "You must provide an array of product IDs in 'ids'",
+    });
+  }
+
+  // Build placeholders for the SQL IN clause
+  const placeholders = ids.map(() => "?").join(",");
+
+  // Step 1: Select images and usageImages for all products to be deleted
+  const selectSql = `SELECT images, usageImages FROM products WHERE id IN (${placeholders})`;
+
+  db.query(selectSql, ids, (selectErr, results) => {
+    if (selectErr) return res.status(500).json({ error: selectErr.message });
+    if (results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No products found for the provided IDs",
+      });
+    }
+
+    // Step 2: Delete products from DB
+    const deleteSql = `DELETE FROM products WHERE id IN (${placeholders})`;
+    db.query(deleteSql, ids, (deleteErr) => {
+      if (deleteErr) return res.status(500).json({ error: deleteErr.message });
+
+      // Step 3: Delete all images from filesystem
+      results.forEach((product) => {
+        const images = JSON.parse(product.images || "[]");
+        const usageImages = JSON.parse(product.usageImages || "[]");
+        [...images, ...usageImages].forEach((filename) => {
+          const filePath = path.join(__dirname, "../uploads", filename);
+          fs.unlink(filePath, (fsErr) => {
+            if (fsErr && fsErr.code !== "ENOENT") {
+              console.error("Error deleting file:", fsErr);
+            }
+          });
+        });
+      });
+
+      res.json({
+        success: true,
+        message: `Deleted ${results.length} products successfully`,
+      });
+    });
   });
 });
 
@@ -390,6 +448,48 @@ router.post("/list", (req, res) => {
   const sql = `SELECT * FROM products WHERE id IN (${placeholders})`;
 
   db.query(sql, ids, (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, products: results });
+  });
+});
+
+// Get all products by category ID (limit 100)
+router.get("/category/:categoryId", (req, res) => {
+  const { categoryId } = req.params;
+
+  const sql = "SELECT * FROM products WHERE category_id = ? LIMIT 100";
+  db.query(sql, [categoryId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, products: results });
+  });
+});
+
+// Get products by offer ID
+router.get("/offer/:offerId", (req, res) => {
+  const { offerId } = req.params;
+
+  const sql =
+    "SELECT * FROM products WHERE offer = ? ORDER BY id DESC LIMIT 100";
+  db.query(sql, [offerId], (err, results) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ success: true, products: results });
+  });
+});
+
+// Search products by name (fuzzy match)
+router.get("/search", (req, res) => {
+  const { q } = req.query;
+
+  if (!q || q.trim() === "") {
+    return res
+      .status(400)
+      .json({ success: false, message: "Missing search query" });
+  }
+
+  const sql = `SELECT * FROM products WHERE name LIKE ? LIMIT 100`;
+  const keyword = `%${q.trim()}%`;
+
+  db.query(sql, [keyword], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true, products: results });
   });
