@@ -457,7 +457,7 @@ router.post("/list", (req, res) => {
 router.get("/category/:categoryId", (req, res) => {
   const { categoryId } = req.params;
 
-  const sql = "SELECT * FROM products WHERE category_id = ? LIMIT 100";
+  const sql = "SELECT * FROM products WHERE category_id = ?";
   db.query(sql, [categoryId], (err, results) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ success: true, products: results });
